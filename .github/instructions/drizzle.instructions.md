@@ -7,6 +7,13 @@ applyTo: 'db/**/*.ts,src/lib/*.ts'
 
 The app's data lives in a local SQLite database accessed through **Drizzle ORM** over Node.js's built-in `node:sqlite` driver. It is consumed at **build time** from Astro page frontmatter — there is no runtime API server. Schema changes are managed with **drizzle-kit** migrations.
 
+## Comments and exported APIs
+
+- Comments should explain **why** code exists, including intent, invariants, trade-offs, or non-obvious decisions. Do not add comments that merely restate what the following code already expresses.
+- Keep comments current. When changing related code, update or remove comments that no longer describe the implementation; outdated comments are bugs.
+- Every exported function in `db/` and `src/lib/` must have a TSDoc/JSDoc comment describing its purpose, every parameter, and its return value. Document the injectable `db` parameter explicitly so callers understand how production and test databases are selected.
+- Use `@param` for each parameter and `@returns` for the returned value. Prefer a short summary followed by only the context that is not clear from the signature.
+
 ## Layout
 
 - `db/schema.ts` — Drizzle table definitions (`publishers`, `categories`, `games`) and inferred row types. The single source of truth for the schema.
@@ -54,6 +61,7 @@ export async function getAllGameIds(db: Database): Promise<number[]> {
 - Always `order by` a stable column (title) so static builds are deterministic.
 - Map raw rows to the app-facing `Game`/`Publisher`/`Category` types in one place; don't leak Drizzle row shapes into components.
 - Keep ordering/lookup logic in `games.ts`, not in pages.
+- Keep exported function signatures explicit and formatted consistently; ESLint enforces the repository's TypeScript formatting rules.
 
 ## Determinism
 

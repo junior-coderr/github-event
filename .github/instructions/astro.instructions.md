@@ -5,6 +5,13 @@ applyTo: '**/*.astro'
 
 # Astro Component Instructions
 
+## Comments and component contracts
+
+- Comments should explain **why** a component or block exists, including intent, accessibility decisions, or non-obvious trade-offs. Do not restate markup or code that is already self-explanatory.
+- Keep comments current when changing the related component; remove comments whose explanation is no longer true.
+- Every reusable `.astro` component must document its frontmatter `Props` interface with a brief TSDoc comment describing the component contract. Document non-obvious properties with property-level comments, including their expected values and behavior.
+- Keep page-only `Props` interfaces concise when their names and types already make the contract clear; add a comment when the page has a non-obvious prop requirement.
+
 ## Astro Component Patterns
 
 Astro handles everything in the UI: pages, layouts, components, routing, and content. The site is **fully prerendered** (`output: 'static'`) — there is no client-side UI framework and no separate API server. Pages read data **directly in frontmatter** at build time via the Drizzle/Node SQLite data-access helpers in `src/lib/`.
@@ -20,6 +27,7 @@ import { getDatabase } from '../lib/db';
 import { getAllGames } from '../lib/games';
 
 interface Props {
+  /** Page title rendered in the document head. */
   title: string;
 }
 

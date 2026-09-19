@@ -18,6 +18,12 @@ Refer to technology-specific instruction files:
 - [`astro.instructions.md`](astro.instructions.md) - Astro pages, layouts, and components
 - [`style.instructions.md`](style.instructions.md) - Tailwind CSS styling patterns
 
+### Comments and documentation
+
+- Explain intent, design decisions, accessibility reasoning, and other non-obvious context; do not comment by paraphrasing the HTML, TypeScript, or Tailwind classes below the comment.
+- Keep comments current with the implementation. Update or remove a comment in the same change when its related code changes.
+- Every reusable `.astro` component must document its `Props` interface. Use TSDoc for the interface and property-level comments where names and types do not fully explain the contract.
+
 ## Core Principles
 
 ### Testability
