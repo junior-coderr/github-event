@@ -9,6 +9,16 @@ import { getAllGames } from '../lib/games';
 export const prerender = true;
 
 const games = await getAllGames(getDatabase());
+const categories = [...new Map(
+  games
+    .filter((game) => game.category !== null)
+    .map((game) => [game.category!.id, game.category!]),
+).values()].sort((a, b) => a.name.localeCompare(b.name));
+const publishers = [...new Map(
+  games
+    .filter((game) => game.publisher !== null)
+    .map((game) => [game.publisher!.id, game.publisher!]),
+).values()].sort((a, b) => a.name.localeCompare(b.name));
 ---
 
 <Layout title="Tailspin Toys - Crowdfunding your new favorite game!">
@@ -19,7 +29,61 @@ const games = await getAllGames(getDatabase());
     />
 
     <div>
-      <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
+      <div class="flex flex-col gap-6 mb-8">
+        <div>
+          <h2 class="text-2xl font-medium text-slate-100">Featured Games</h2>
+          <p class="text-slate-400 mt-2" data-testid="filter-result-count" aria-live="polite">
+            Showing {games.length} {games.length === 1 ? 'game' : 'games'}
+          </p>
+        </div>
+
+        <form class="bg-slate-800/60 border border-slate-700 rounded-xl p-6" data-testid="game-filters">
+          <div class="flex flex-col gap-6 lg:flex-row lg:items-end">
+            <fieldset class="flex-1">
+              <legend class="text-sm font-semibold text-slate-200 mb-3">Filter by category</legend>
+              <div class="flex flex-wrap gap-3">
+                {categories.map((category) => (
+                  <label class="inline-flex items-center gap-2 text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="category"
+                      value={category.id}
+                      class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      data-testid={`category-filter-${category.id}`}
+                    />
+                    <span>{category.name}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <div class="min-w-64">
+              <label for="publisher-filter" class="block text-sm font-semibold text-slate-200 mb-3">
+                Filter by publisher
+              </label>
+              <select
+                id="publisher-filter"
+                name="publisher"
+                class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                data-testid="publisher-filter"
+              >
+                <option value="">All publishers</option>
+                {publishers.map((publisher) => (
+                  <option value={publisher.id}>{publisher.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="reset"
+              class="rounded-lg border border-slate-600 px-4 py-2 text-slate-200 hover:bg-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              data-testid="clear-filters"
+            >
+              Clear filters
+            </button>
+          </div>
+        </form>
+      </div>
 
       {games.length === 0 ? (
         <EmptyState text="No games available at the moment." />
@@ -28,6 +92,64 @@ const games = await getAllGames(getDatabase());
           {games.map((game) => <GameCard game={game} />)}
         </div>
       )}
+      <div class="hidden" data-testid="filtered-empty-state">
+        <EmptyState text="No games match the selected filters." />
+      </div>
     </div>
   </div>
 </Layout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-testid="game-filters"]');
+  const cards = [...document.querySelectorAll<HTMLElement>('[data-testid="game-card"]')];
+  const resultCount = document.querySelector<HTMLElement>('[data-testid="filter-result-count"]');
+  const filteredEmptyState = document.querySelector<HTMLElement>('[data-testid="filtered-empty-state"]');
+
+  if (form && resultCount && filteredEmptyState) {
+    const categoryInputs = [...form.querySelectorAll<HTMLInputElement>('input[name="category"]')];
+    const publisherInput = form.elements.namedItem('publisher') as HTMLSelectElement;
+
+    const applyFilters = (updateUrl = true) => {
+      const selectedCategories = categoryInputs.filter((input) => input.checked).map((input) => input.value);
+      const selectedPublisher = publisherInput.value;
+
+      cards.forEach((card) => {
+        const matchesCategory =
+          selectedCategories.length === 0 ||
+          selectedCategories.includes(card.dataset.gameCategoryId ?? '');
+        const matchesPublisher =
+          selectedPublisher === '' || card.dataset.gamePublisherId === selectedPublisher;
+        card.hidden = !(matchesCategory && matchesPublisher);
+      });
+
+      const visibleCount = cards.filter((card) => !card.hidden).length;
+      resultCount.textContent = `Showing ${visibleCount} ${visibleCount === 1 ? 'game' : 'games'}`;
+      filteredEmptyState.classList.toggle('hidden', visibleCount > 0);
+
+      if (updateUrl) {
+        const params = new URLSearchParams();
+        selectedCategories.forEach((category) => params.append('category', category));
+        if (selectedPublisher) {
+          params.set('publisher', selectedPublisher);
+        }
+        const query = params.toString();
+        window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+      }
+    };
+
+    const restoreFiltersFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const selectedCategories = new Set(params.getAll('category'));
+      categoryInputs.forEach((input) => {
+        input.checked = selectedCategories.has(input.value);
+      });
+      publisherInput.value = params.get('publisher') ?? '';
+      applyFilters(false);
+    };
+
+    form.addEventListener('change', () => applyFilters());
+    form.addEventListener('reset', () => requestAnimationFrame(() => applyFilters()));
+    window.addEventListener('popstate', restoreFiltersFromUrl);
+    restoreFiltersFromUrl();
+  }
+</script>

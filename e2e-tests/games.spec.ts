@@ -1,6 +1,54 @@
 import { test, expect, type Response } from '@playwright/test';
 
 test.describe('Game Listing and Navigation', () => {
+  test('should filter games by category and publisher together', async ({ page }) => {
+    await page.goto('/');
+    const allGameCards = page.getByTestId('game-card');
+    const visibleGameCards = page.locator('[data-testid="game-card"]:visible');
+    const initialCount = await allGameCards.count();
+    const firstCategory = page.locator('input[name="category"]').first();
+    const firstCategoryValue = await firstCategory.inputValue();
+
+    await test.step('Filter by a category', async () => {
+      await firstCategory.check();
+      await expect(visibleGameCards.first()).toBeVisible();
+      expect(await visibleGameCards.count()).toBeLessThan(initialCount);
+      await expect(page.getByTestId('filter-result-count')).toContainText('Showing');
+      await expect(page).toHaveURL(new RegExp(`category=${firstCategoryValue}`));
+    });
+
+    await test.step('Combine the category with a publisher', async () => {
+      await page.getByTestId('publisher-filter').selectOption({ label: 'CodeForge Studios' });
+      await expect(page).toHaveURL(new RegExp(`category=${firstCategoryValue}.*publisher=`));
+      await expect(visibleGameCards.first()).toContainText('CodeForge Studios');
+      await expect(page.getByTestId('filtered-empty-state')).toBeHidden();
+    });
+
+    await test.step('Clear filters and restore all games', async () => {
+      await page.getByTestId('clear-filters').click();
+      await expect(page).toHaveURL('/');
+      await expect(visibleGameCards).toHaveCount(initialCount);
+      await expect(page.getByTestId('filtered-empty-state')).toBeHidden();
+    });
+  });
+
+  test('should restore filters from the URL', async ({ page }) => {
+    await page.goto('/');
+    const categoryInputs = page.locator('input[name="category"]');
+    const categoryValues = await categoryInputs.evaluateAll((inputs) =>
+      inputs.slice(0, 2).map((input) => (input as HTMLInputElement).value),
+    );
+    const publisherValue =
+      (await page.getByTestId('publisher-filter').locator('option').nth(1).getAttribute('value')) ?? '';
+
+    await page.goto(`/?category=${categoryValues[0]}&category=${categoryValues[1]}&publisher=${publisherValue}`);
+
+    await expect(categoryInputs.nth(0)).toBeChecked();
+    await expect(categoryInputs.nth(1)).toBeChecked();
+    await expect(page.getByTestId('publisher-filter')).toHaveValue(publisherValue);
+    await expect(page.getByTestId('filter-result-count')).toContainText('Showing');
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');
