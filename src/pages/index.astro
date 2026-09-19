@@ -43,12 +43,12 @@ const publishers = [...new Map(
               <legend class="text-sm font-semibold text-slate-200 mb-3">Filter by category</legend>
               <div class="flex flex-wrap gap-3">
                 {categories.map((category) => (
-                  <label class="inline-flex items-center gap-2 text-slate-300 cursor-pointer">
+                  <label class="group inline-flex items-center gap-2 text-slate-300 cursor-pointer">
                     <input
                       type="checkbox"
                       name="category"
                       value={category.id}
-                      class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      class="size-5 rounded border-slate-600 bg-slate-900 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       data-testid={`category-filter-${category.id}`}
                     />
                     <span>{category.name}</span>
